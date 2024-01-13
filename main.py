@@ -2,8 +2,8 @@ import discord
 from discord.ext import commands, tasks
 import datetime
 import os
-import pytz
 import asyncio
+import signal
 
 intents = discord.Intents.default()
 intents.typing = False
@@ -11,7 +11,7 @@ intents.presences = False
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-time_in_channel_dict = {}  # Dictionary to store join times for each member
+time_in_channel_dict = {}  # Dictionary to store join times for each member and channel
 total_time_in_channels = {}  # Dictionary to store total time spent by each member in each channel
 war_channels = ['TAKIM_1', 'TAKIM_2', 'TAKIM_3']
 
@@ -22,21 +22,21 @@ async def on_voice_state_update(member, old_state, new_state):
 
     if old_user_channel and old_user_channel.name in war_channels:
         # Check if the old channel is a war channel
-        join_time_utc = time_in_channel_dict.get((member.id, old_user_channel.name), None)
-        if join_time_utc:
+        join_times = time_in_channel_dict.get((member.id, old_user_channel.name), [])
+        if join_times:
             leave_time_utc = datetime.datetime.utcnow()
-            time_spent = leave_time_utc - join_time_utc
+            time_spent = leave_time_utc - join_times[-1]  # Use the last recorded join time
 
             # Accumulate time spent in the channel
             total_time_in_channels.setdefault(member.id, {}).setdefault(old_user_channel.name, datetime.timedelta())
             total_time_in_channels[member.id][old_user_channel.name] += time_spent
 
             print(f"{member.display_name} spent {time_spent} in {old_user_channel.name}")
-            time_in_channel_dict[(member.id, old_user_channel.name)] = None  # Reset join time
+            time_in_channel_dict[(member.id, old_user_channel.name)].append(leave_time_utc)  # Add the new leave time
 
     if new_user_channel and new_user_channel.name in war_channels:
         # Check if the new channel is a war channel
-        time_in_channel_dict[(member.id, new_user_channel.name)] = datetime.datetime.utcnow()
+        time_in_channel_dict.setdefault((member.id, new_user_channel.name), []).append(datetime.datetime.utcnow())
 
 @bot.event
 async def on_ready():
@@ -47,10 +47,35 @@ async def on_ready():
 
 @tasks.loop(seconds=5)  # Check every 5 seconds (adjust as needed)
 async def check_voice_channels_loop():
-    for member_id, channels in total_time_in_channels.items():
-        for channel_name, time_spent in channels.items():
-            minutes, seconds = divmod(time_spent.total_seconds(), 60)
-            print(f"Member {member_id} spent {int(minutes)} minutes and {int(seconds)} seconds in {channel_name}")
+    current_time = datetime.datetime.utcnow()
+
+    # Check if an hour has passed
+    if (current_time - start_time).total_seconds() >= 30:
+        print("Bot has run for one hour. Shutting down.")
+        await cleanup()
+
+@bot.event
+async def on_disconnect():
+    await cleanup()
+
+async def cleanup():
+    # Check the last known state for members still in war channels
+    for (member_id, channel_name), join_times in time_in_channel_dict.items():
+        if join_times:
+            # Calculate the time spent in the last channel
+            leave_time_utc = datetime.datetime.utcnow()
+            time_spent = leave_time_utc - join_times[-1]
+
+            # Accumulate time spent in the channel
+            total_time_in_channels.setdefault(member_id, {}).setdefault(channel_name, datetime.timedelta())
+            total_time_in_channels[member_id][channel_name] += time_spent
+
+            print(f"{member_id} spent {time_spent} in {channel_name}")
+
+    await bot.close()
+
+# Set the start time
+start_time = datetime.datetime.utcnow()
 
 # Run the bot
 bot.run(os.getenv("TOKEN"))
