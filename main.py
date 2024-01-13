@@ -3,7 +3,6 @@ from discord.ext import commands, tasks
 import datetime
 import os
 import asyncio
-import signal
 
 intents = discord.Intents.default()
 intents.typing = False
@@ -71,6 +70,23 @@ async def cleanup():
             total_time_in_channels[member_id][channel_name] += time_spent
 
             print(f"{member_id} spent {time_spent} in {channel_name}")
+
+    # Create a report or table with cumulative data
+    report = "Cumulative Time Report:\n"
+    for member_id, channels in total_time_in_channels.items():
+        report += f"\nMember {member_id}:\n"
+        for channel_name, time_spent in channels.items():
+            minutes, seconds = divmod(time_spent.total_seconds(), 60)
+            report += f"  {channel_name}: {int(minutes)} minutes and {int(seconds)} seconds\n"
+
+    # Get the "stats" channel
+    stats_channel = discord.utils.get(bot.get_all_channels(), name='stats')
+
+    # Send the report to the "stats" channel
+    if stats_channel:
+        await stats_channel.send(report)
+    else:
+        print("Stats channel not found.")
 
     await bot.close()
 
