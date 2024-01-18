@@ -107,61 +107,14 @@ def update_google_sheets(member_name):
 
   response = requests.get(SHEET_API_ENDPOINT, headers=headers)
   data = response.json()
-
-  if response.status_code == 200:
-    member_name_lower = member_name.lower()
-    member_exists = any(row['Member'].lower() == member_name_lower
-                        for row in data)
-
-    if member_exists:
-      updated_data = [{
-          'Visitor Counter':
-          str(int(row.get('Visitor Counter', 0) or 0) + 1),
-          'Dates':
-          current_date
-          if not row.get('Dates') else f"{row['Dates']},{current_date}",
-      } if row['Member'].lower() == member_name_lower else row for row in data]
-
-      row_id = next(
-          (row.get('id')
-           for row in data if row['Member'].lower() == member_name_lower),
-          None)
-
-      if row_id:
-        update_url = f'{SHEET_API_ENDPOINT}/{row_id}'
-        response = requests.patch(update_url,
-                                  headers=headers,
-                                  json=updated_data[0])
-
-        if response.status_code == 200:
-          print(f"Updated Google Sheets for existing member: {member_name}")
-        else:
-          print(
-              f"Failed to update Google Sheets for existing member: {member_name}"
-          )
-          print("Status Code:", response.status_code)
-      else:
-        print(f"Row ID not found for existing member: {member_name}")
-    else:
-      new_row = {
-          'Member': member_name,
-          'Visitor Counter': 1,
-          'Dates': [current_date],
-      }
-
-      response = requests.post(SHEET_API_ENDPOINT,
-                               headers=headers,
-                               json=new_row)
-
-      if response.status_code == 201:
-        print(f"Added new row to Google Sheets for new member: {member_name}")
-      else:
-        print(
-            f"Failed to add new row to Google Sheets for new member: {member_name}"
-        )
-        print("Status Code:", response.status_code)
+  print("#test, member_name -> [--", member_name, "--]")
+  if member_name.isspace() or not member_name.strip():
+    print("Invalid member name. It contains blanks or spaces.")
   else:
-    print(f"Failed to fetch data from Google Sheets: {response.status_code}")
+    print("Valid member name. It does not contain any blanks or spaces.")
+
+  print("#test, data -->", data)
+  # toDo: check the api doc of sheetdb to use & update json format properly
 
 
 start_time = datetime.datetime.utcnow()
