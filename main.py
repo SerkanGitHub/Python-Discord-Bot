@@ -96,34 +96,76 @@ async def cleanup():
 
     await bot.close()
 
-
 def update_google_sheets(member_name):
   headers = {
       'Authorization': f'Bearer {BEARER_TOKEN_TEST}',
       'Content-Type': 'application/json',
   }
 
-  url = f'{SHEET_API_ENDPOINT}/Member/Papalino'
-  search_url = f'{SHEET_API_ENDPOINT}/search_or?Member=Papalino'
-
+  search_url = f'{SHEET_API_ENDPOINT}/search_or?Member={member_name}'
   response_search = requests.get(search_url, headers=headers)
   data_search = response_search.json()
-  print("#test, data_search ->", data_search)
-  
-  payload = {
-     'data': {
-         'Visitor Counter': '9'
-     }
- }
+  print("#test, ---> data_search", data_search)
 
-  response = requests.patch(url, headers=headers, data=json.dumps(payload))
-  data = response.json()
+  if data_search:
+      print("#test, data_search exists!")
+      # Member exists in the sheet
+      member_data = data_search[0]  # Assuming the first element has the member's data
+      url = f'{SHEET_API_ENDPOINT}/Member/{member_name}'
 
-  print(data)
+      visitor_counter_str = member_data.get('Visitor Counter', '')
 
-  #https://sheetdb.io/api/v1/58f61be4dda40/search_or?name=Papalino
+      # Initialize visitor_counter with the existing value
+      visitor_counter = int(visitor_counter_str) if visitor_counter_str.isdigit() else 0
 
-  # toDo: check the api doc of sheetdb to use & update json format properly
+      if not visitor_counter_str:
+          # 'Visitor Counter' is empty, set it to 1
+          member_data['Visitor Counter'] = '1'
+      else:
+          # 'Visitor Counter' has a value, increment it by 1
+          try:
+              visitor_counter += 1
+              member_data['Visitor Counter'] = str(visitor_counter)
+          except ValueError:
+              # Handle the case where 'Visitor Counter' is not a valid integer
+              print(f"Error: Invalid 'Visitor Counter' value for member {member_name}")
+
+      dates = member_data.get('Dates', '')
+      print("#test, dates -->", dates)
+
+      # Check if 'Dates' is a string, if so, convert it to a list
+      if isinstance(dates, str):
+          dates = [dates]
+
+      dates.append(str(datetime.datetime.utcnow()))
+
+      payload = {
+          'data': {
+              'Visitor Counter': str(visitor_counter),
+              'Dates': dates
+          }
+      }
+
+      response = requests.patch(url, headers=headers, data=json.dumps(payload))
+      data = response.json()
+
+      print(data)
+  else:
+      # Member does not exist in the sheet, add a new row
+      url = f'{SHEET_API_ENDPOINT}/Member'
+      payload = {
+          'data': {
+              'Member': member_name,
+              'Visitor Counter': '1',
+              'Dates': [str(datetime.datetime.utcnow())]
+          }
+      }
+
+      response = requests.post(url, headers=headers, data=json.dumps(payload))
+      data = response.json()
+
+      print(data)
+
 
 
 start_time = datetime.datetime.utcnow()
