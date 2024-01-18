@@ -3,7 +3,7 @@ from discord.ext import commands, tasks
 import datetime
 import os
 import requests
-import re
+import json
 
 intents = discord.Intents.default()
 intents.typing = False
@@ -103,17 +103,26 @@ def update_google_sheets(member_name):
       'Content-Type': 'application/json',
   }
 
-  current_date = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+  url = f'{SHEET_API_ENDPOINT}/Member/Papalino'
+  search_url = f'{SHEET_API_ENDPOINT}/search_or?Member=Papalino'
 
-  response = requests.get(SHEET_API_ENDPOINT, headers=headers)
+  response_search = requests.get(search_url, headers=headers)
+  data_search = response_search.json()
+  print("#test, data_search ->", data_search)
+  
+  payload = {
+     'data': {
+         'Visitor Counter': '9'
+     }
+ }
+
+  response = requests.patch(url, headers=headers, data=json.dumps(payload))
   data = response.json()
-  print("#test, member_name -> [--", member_name, "--]")
-  if member_name.isspace() or not member_name.strip():
-    print("Invalid member name. It contains blanks or spaces.")
-  else:
-    print("Valid member name. It does not contain any blanks or spaces.")
 
-  print("#test, data -->", data)
+  print(data)
+
+  #https://sheetdb.io/api/v1/58f61be4dda40/search_or?name=Papalino
+
   # toDo: check the api doc of sheetdb to use & update json format properly
 
 
