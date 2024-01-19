@@ -130,14 +130,20 @@ def update_google_sheets(member_name):
               # Handle the case where 'Visitor Counter' is not a valid integer
               print(f"Error: Invalid 'Visitor Counter' value for member {member_name}")
 
-      dates = member_data.get('Dates', '')
+      dates = member_data.get('Dates', [])
       print("#test, dates -->", dates)
 
       # Check if 'Dates' is a string, if so, convert it to a list
       if isinstance(dates, str):
           dates = [dates]
 
-      dates.append(str(datetime.datetime.utcnow()))
+      # Append the new date in the desired format 'dd.mm.yyyy'
+      new_date = datetime.datetime.utcnow().strftime('%d.%m.%Y')
+      dates.append(new_date)
+
+      # Convert dates back to a string with the desired format
+      member_data['Dates'] = ', '.join(dates)
+      print("#test, date format -> ", new_date)
 
       payload = {
           'data': {
@@ -153,11 +159,12 @@ def update_google_sheets(member_name):
   else:
       # Member does not exist in the sheet, add a new row
       url = f'{SHEET_API_ENDPOINT}/Member'
+      new_date = datetime.datetime.utcnow().strftime('%d.%m.%Y')
       payload = {
           'data': {
               'Member': member_name,
               'Visitor Counter': '1',
-              'Dates': [str(datetime.datetime.utcnow())]
+              'Dates': new_date
           }
       }
 
