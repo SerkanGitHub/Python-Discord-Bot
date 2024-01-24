@@ -1,3 +1,10 @@
+#toDo:
+'''
+  -> fix endless loop when user not matching with list of google docs
+  -> add '1' when row in Couner is empty, it adds '0' atm
+  -> fetch discord member display names by substring from 0 to firstIndexOf '/'
+'''
+
 import discord
 from discord.ext import commands, tasks
 import datetime
@@ -15,8 +22,7 @@ time_in_channel_dict = {}
 total_time_in_channels = {}
 war_channels = ['TAKIM_1', 'TAKIM_2', 'TAKIM_3']
 
-BEARER_TOKEN_TEST = '8we2wcg70qwszfqwgszoo0vk7e02u4mmoksodcyi'
-SHEET_API_ENDPOINT = 'https://sheetdb.io/api/v1/4jpcrb8bvln2k'
+gSHEET_API_ENDPOINT = 'https://sheetdb.io/api/v1/4jpcrb8bvln2k'
 
 
 @bot.event
@@ -57,7 +63,7 @@ async def on_ready():
 async def check_voice_channels_loop():
   current_time = datetime.datetime.utcnow()
 
-  if (current_time - start_time).total_seconds() >= 9:
+  if (current_time - start_time).total_seconds() >= 20:
     print("Bot has run for one hour. Shutting down.")
     await cleanup()
 
@@ -96,9 +102,10 @@ async def cleanup():
 
     await bot.close()
 
+
 def update_google_sheets(member_name):
   headers = {
-      'Authorization': f'Bearer {BEARER_TOKEN_TEST}',
+      'Authorization': f'Bearer {os.getenv("SHEET_GOOGLE_DOCS_TOKEN")}',
       'Content-Type': 'application/json',
   }
 
@@ -108,72 +115,76 @@ def update_google_sheets(member_name):
   print("#test, ---> data_search", data_search)
 
   if data_search:
-      print("#test, data_search exists!")
-      # Member exists in the sheet
-      member_data = data_search[0]  # Assuming the first element has the member's data
-      url = f'{SHEET_API_ENDPOINT}/Member/{member_name}'
+    print("#test, data_search exists!")
+    # Member exists in the sheet
+    member_data = data_search[
+        0]  # Assuming the first element has the member's data
+    url = f'{SHEET_API_ENDPOINT}/Member/{member_name}'
 
-      visitor_counter_str = member_data.get('Visitor Counter', '')
+    visitor_counter_str = member_data.get('Visitor Counter', '')
 
-      # Initialize visitor_counter with the existing value
-      visitor_counter = int(visitor_counter_str) if visitor_counter_str.isdigit() else 0
+    # Initialize visitor_counter with the existing value
+    visitor_counter = int(
+        visitor_counter_str) if visitor_counter_str.isdigit() else 0
 
-      if not visitor_counter_str:
-          # 'Visitor Counter' is empty, set it to 1
-          member_data['Visitor Counter'] = '1'
-      else:
-          # 'Visitor Counter' has a value, increment it by 1
-          try:
-              visitor_counter += 1
-              member_data['Visitor Counter'] = str(visitor_counter)
-          except ValueError:
-              # Handle the case where 'Visitor Counter' is not a valid integer
-              print(f"Error: Invalid 'Visitor Counter' value for member {member_name}")
+    if not visitor_counter_str:
+      # 'Visitor Counter' is empty, set it to 1
+      member_data['Visitor Counter'] = '1'
+    else:
+      # 'Visitor Counter' has a value, increment it by 1
+      try:
+        visitor_counter += 1
+        member_data['Visitor Counter'] = str(visitor_counter)
+      except ValueError:
+        # Handle the case where 'Visitor Counter' is not a valid integer
+        print(
+            f"Error: Invalid 'Visitor Counter' value for member {member_name}")
 
-      dates = member_data.get('Dates', [])
-      print("#test, dates -->", dates)
+    dates = member_data.get('Dates', [])
+    print("#test, dates -->", dates)
 
-      # Check if 'Dates' is a string, if so, convert it to a list
-      if isinstance(dates, str):
-          dates = [dates]
+    # Check if 'Dates' is a string, if so, convert it to a list
+    if isinstance(dates, str):
+      dates = [dates]
 
-      # Append the new date in the desired format 'dd.mm.yyyy'
-      new_date = datetime.datetime.utcnow().strftime('%d.%m.%Y')
-      dates.append(new_date)
+    # Append the new date in the desired format 'dd.mm.yyyy'
+    new_date = datetime.datetime.utcnow().strftime('%d.%m.%Y')
+    dates.append(new_date)
 
-      # Convert dates back to a string with the desired format
-      member_data['Dates'] = ', '.join(dates)
-      print("#test, date format -> ", new_date)
+    # Convert dates back to a string with the desired format
+    member_data['Dates'] = ', '.join(dates)
+    print("#test, date format -> ", new_date)
 
-      payload = {
-          'data': {
-              'Visitor Counter': str(visitor_counter),
-              'Dates': dates
-          }
-      }
+    payload = {
+        'data': {
+            'Visitor Counter': str(visitor_counter),
+            'Dates': dates
+        }
+    }
 
-      response = requests.patch(url, headers=headers, data=json.dumps(payload))
-      data = response.json()
+    response = requests.patch(url, headers=headers, data=json.dumps(payload))
+    data = response.json()
 
-      print(data)
+    print(data)
   else:
-      # Member does not exist in the sheet, add a new row
-      url = f'{SHEET_API_ENDPOINT}/Member'
-      new_date = datetime.datetime.utcnow().strftime('%d.%m.%Y')
-      payload = {
-          'data': {
-              'Member': member_name,
-              'Visitor Counter': '1',
-              'Dates': new_date
-          }
-      }
+    # Member does not exist in the sheet, add a new row
+    url = f'{SHEET_API_ENDPOINT}/Member'
+    new_date = datetime.datetime.utcnow().strftime('%d.%m.%Y')
+    payload = {
+        'data': {
+            'Member': member_name,
+            'Visitor Counter': '1',
+            'Dates': new_date
+        }
+    }
 
-      response = requests.post(url, headers=headers, data=json.dumps(payload))
-      data = response.json()
+    response = requests.post(url, headers=headers, data=json.dumps(payload))
+    data = response.json()
 
-      print(data)
+    print(data)
 
 
+#toDo: replit schedule
 
 start_time = datetime.datetime.utcnow()
 cleanup_called = False
