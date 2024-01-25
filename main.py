@@ -1,16 +1,17 @@
-#toDo:
-'''
-  -> fix endless loop when user not matching with list of google docs
-  -> add '1' when row in Couner is empty, it adds '0' atm
-  -> fetch discord member display names by substring from 0 to firstIndexOf '/'
-'''
-
 import discord
 from discord.ext import commands, tasks
 import datetime
 import os
 import requests
 import json
+
+#toDo:
+'''
+  -> add '1' when row in Couner is empty, it adds '0' atm
+  -> fetch discord member display names by substring from 0 to firstIndexOf '/'
+  -> adjust running time to 90 minutes. Start at 7.30 PM on Saturday 27th
+  -> consider members that have spent more than 10 minutes in the war_channels
+'''
 
 intents = discord.Intents.default()
 intents.typing = False
@@ -22,7 +23,7 @@ time_in_channel_dict = {}
 total_time_in_channels = {}
 war_channels = ['TAKIM_1', 'TAKIM_2', 'TAKIM_3']
 
-gSHEET_API_ENDPOINT = 'https://sheetdb.io/api/v1/4jpcrb8bvln2k'
+SHEET_API_ENDPOINT = 'https://sheetdb.io/api/v1/4jpcrb8bvln2k'
 
 
 @bot.event
@@ -168,7 +169,8 @@ def update_google_sheets(member_name):
     print(data)
   else:
     # Member does not exist in the sheet, add a new row
-    url = f'{SHEET_API_ENDPOINT}/Member'
+    print("#test, Member does not exist, so add new member --> ", member_name)
+    url = f'{SHEET_API_ENDPOINT}'
     new_date = datetime.datetime.utcnow().strftime('%d.%m.%Y')
     payload = {
         'data': {
@@ -177,11 +179,11 @@ def update_google_sheets(member_name):
             'Dates': new_date
         }
     }
-
     response = requests.post(url, headers=headers, data=json.dumps(payload))
-    data = response.json()
+    print("#test, i am here response-->>", response)
 
-    print(data)
+    data = response.json()
+    print("#test, data-->", data)
 
 
 #toDo: replit schedule
