@@ -7,8 +7,6 @@ import json
 
 #toDo:
 '''
-  -> add '1' when row in Couner is empty, it adds '0' atm
-  -> fetch discord member display names by substring from 0 to firstIndexOf '/'
   -> adjust running time to 90 minutes. Start at 7.30 PM on Saturday 27th
   -> consider members that have spent more than 10 minutes in the war_channels
 '''
