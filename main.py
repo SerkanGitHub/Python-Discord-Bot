@@ -104,7 +104,16 @@ async def cleanup():
     await bot.close()
 
 
-def update_google_sheets(member_name):
+def update_google_sheets(member_name_pass):
+  # Split the member_name at the first occurrence of "/"
+  name_parts = member_name_pass.split('/', 1)
+
+  # Extract the first part of the split (before the first "/")
+  member_name = name_parts[0]
+
+  # Now you can use 'first_part' in your subsequent code
+  print("First part:", member_name)
+
   headers = {
       'Authorization': f'Bearer {os.getenv("SHEET_GOOGLE_DOCS_TOKEN")}',
       'Content-Type': 'application/json',
@@ -113,7 +122,6 @@ def update_google_sheets(member_name):
   search_url = f'{SHEET_API_ENDPOINT}/search_or?Member={member_name}'
   response_search = requests.get(search_url, headers=headers)
   data_search = response_search.json()
-  print("#test, ---> data_search", data_search)
 
   if data_search:
     print("#test, data_search exists!")
@@ -169,7 +177,6 @@ def update_google_sheets(member_name):
     print(data)
   else:
     # Member does not exist in the sheet, add a new row
-    print("#test, Member does not exist, so add new member --> ", member_name)
     url = f'{SHEET_API_ENDPOINT}'
     new_date = datetime.datetime.utcnow().strftime('%d.%m.%Y')
     payload = {
@@ -180,10 +187,7 @@ def update_google_sheets(member_name):
         }
     }
     response = requests.post(url, headers=headers, data=json.dumps(payload))
-    print("#test, i am here response-->>", response)
-
     data = response.json()
-    print("#test, data-->", data)
 
 
 #toDo: replit schedule
